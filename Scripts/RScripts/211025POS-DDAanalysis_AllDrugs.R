@@ -2,6 +2,7 @@
 library(tidyverse)
 library(ggforce)
 library(here)
+conflict_prefer("here", "here")
 library(cowplot)
 
 #Load DDA Posaconazole evolved data - contains data from the replicates evolved in 72h transfers in POS for "FLC" "CTR" "NYT" "MCZ" "5FC" "VCZ" "POS"; all strains in POS & FLC, other drugs on SC5314 evolved replicates
@@ -13,7 +14,7 @@ DDA$line <-ifelse(DDA$person =="M", DDA$replicate, DDA$replicate+12)
 Dark2  <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666")
 
 ################################
-#POS DDA 
+#POS DDA
 ################################
 DDA_POS <- subset(DDA, drug=="POS")
 DDA_POS_anc <- subset(DDA_POS, time =="0")
@@ -74,14 +75,14 @@ FoGresults <- data.frame()
 j <- 0
 for (i in unique(DDA_POSm_evol$strain)){
   print(i)
- evol <- subset(DDA_POSm_evol, strain==i) 
+ evol <- subset(DDA_POSm_evol, strain==i)
  anc <- subset(DDA_POSm_anc, strain==i)
  anc_mean <- subset(DDA_POSgm_anc, strain==i)
- 
+
  radDiff <- append(radDiff, evol$avgRAD20 - anc_mean$avgRAD20)
  FoGDiff <- append(FoGDiff, evol$avgFoG20 - anc_mean$avgFoG20)
  strain <- append(strain, evol$strain)
- 
+
  if(length(evol$avgRAD20) > 2){
  t <- t.test(anc$avgRAD20, evol$avgRAD20)
  results_RAD <- c(i, round(t$estimate[2]-t$estimate[1],2), round(t$statistic,2), round(t$parameter,2), round(t$p.value,4))
@@ -185,19 +186,19 @@ RADresults_FLC <- data.frame()
 FoGresults_FLC <- data.frame()
 j <- 0
 for (i in unique(DDA_FLCm_evol$strain)){
-  evol <- subset(DDA_FLCm_evol, strain==i) 
+  evol <- subset(DDA_FLCm_evol, strain==i)
   anc <- subset(DDA_FLCm_anc, strain==i)
   anc_mean <- subset(DDA_FLCgm_anc, strain==i)
-  
-  radDiff <- append(radDiff_FLC, evol$avgRAD20 - anc_mean$avgRAD20)
-  FoGDiff <- append(FoGDiff_FLC, evol$avgFoG20 - anc_mean$avgFoG20)
+
+  radDiff_FLC <- append(radDiff_FLC, evol$avgRAD20 - anc_mean$avgRAD20)
+  FoGDiff_FLC <- append(FoGDiff_FLC, evol$avgFoG20 - anc_mean$avgFoG20)
   strain_FLC <- append(strain_FLC, evol$strain)
-  
+
   if(length(evol$avgFoG20) > 2){
     if(sum(!is.na(evol$avgFoG20)) > 2){
       t <- t.test(anc$avgRAD20, evol$avgRAD20)
       results_RAD_FLC <- c(i, round(t$estimate[2]-t$estimate[1],2), round(t$statistic,2), round(t$parameter,2), round(t$p.value,4))
-      
+
       t2 <- t.test(anc$avgFoG20, evol$avgFoG20)
       results_FoG_FLC <- c(i, round(t2$estimate[2]-t2$estimate[1],2), round(t2$statistic,2), round(t2$parameter,2), round(t2$p.value,4))
     }
@@ -213,7 +214,7 @@ for (i in unique(DDA_FLCm_evol$strain)){
     print(i)
     RADresults_FLC <- rbind(RADresults_FLC, results_RAD_FLC)
     FoGresults_FLC <- rbind(FoGresults_FLC, results_FoG_FLC)
-}   
+}
 colnames(RADresults_FLC) <- paste(c("Strain","Evol - Anc","t-statistic","Degrees of freedom","p-value"))
 colnames(FoGresults_FLC) <- paste(c("Strain","Evol - Anc","t-statistic","Degrees of freedom","p-value"))
 
@@ -238,16 +239,20 @@ for (i in unique(DDA_FLCm_evol$strain)){
 ##############################
 #POS & FLC Differences combined
 ##############################
+#run 211215-YPD-DDAanalysis.R first to get YPD data
+
 order <- c("A08", "A02",  "A03", "A17", "A04",  "A18", "A10", "A12")
 realnames <- c("P75016", "P87",  "GC75",  "SC5314", "P78048", "FH1", "P76055", "T101")
 
 DDA_POS_diff$strain <- factor(DDA_POS_diff$strain, levels=order)
 DDA_FLC_diff$strain <- factor(DDA_FLC_diff$strain, levels=order)
 
-pdf("Figures/PDF/Figure3-DDA-POS-FLC.pdf", width=7.5, height=5)
+pdf("Figures/Figure3-DDA-YPD-POS-FLC.pdf", width=7.5, height=5)
 par(mfrow=c(2, 1),mar=c(1,1,1,1), oma=c(3, 3.5, 1, 1))
 plot(jitter(as.numeric(as.factor(DDA_POS_diff$strain)), factor=0.2), DDA_POS_diff$RAD20diff, ylim=c(10, -10), xlim=c(0.8,8.2), col="darkblue", ylab = "", xaxt="n", yaxt="n")
 points(jitter(as.numeric(as.factor(DDA_FLC_diff$strain))+0.2, factor=0.2), DDA_FLC_diff$RAD20diff, col=Dark2[6])
+points(jitter(as.numeric(as.factor(diffs72_YPD$strain))-0.2, factor=0.2), diffs72_YPD$radDiff72, col="forestgreen")
+
 abline(h=0, lty=2)
 axis(1, at=1:8, labels=FALSE)
 axis(2, las=2)
@@ -256,12 +261,13 @@ mtext(txt, side=2, line=3)
 
 plot(jitter(as.numeric(as.factor(DDA_POS_diff$strain)), 0.2), DDA_POS_diff$FoG20diff, ylim=c(-1, 1), col="darkblue", xlim=c(0.8,8.2),ylab = "Change in Tolerance (FoG20)", xaxt="n", yaxt="n")
 points(jitter(as.numeric(as.factor(DDA_FLC_diff$strain))+0.2, factor= 0.2), DDA_FLC_diff$FoG20diff, col=Dark2[6])
+points(jitter(as.numeric(as.factor(diffs72_YPD$strain))-0.2, factor= 0.2), diffs72_YPD$FoGDiff72, col="forestgreen")
 abline(h=0, lty=2)
 axis(1, at=1:8, labels=realnames)
 axis(2, las=2)
 txt2 <- expression(paste(Delta," Tolerance (", FoG[20], ")"))
 mtext(txt2, side=2, line=3)
-legend("bottomright", pch=21, col=c(Dark2[8], Dark2[6]), legend=c("POS", "FLC"), cex=0.8)
+legend("bottomright", pch=21, col=c("forestgreen", Dark2[8], Dark2[6]), legend=c("YPD-evolved, POS", "POS-evoled, POS", "POS-evolved, FLC"), cex=0.8)
 dev.off()
 
 
@@ -320,18 +326,42 @@ DDA_VCZm_evol <- subset(DDA_VCZm, time == "5")
 Evol <- c(3:11, 14, 22, 23)
 DDA_POSm_evol_A17 <- DDA_POSm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_POSm_evol_A17$drug <- "POS"
 DDA_FLCm_evol_A17 <- DDA_FLCm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_FLCm_evol_A17$drug <- "FLC"
 DDA_CTRm_evol_A17 <- DDA_CTRm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_CTRm_evol_A17$drug <- "CTR"
 DDA_NYTm_evol_A17 <- DDA_NYTm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_NYTm_evol_A17$drug <- "NYT"
 DDA_MCZm_evol_A17 <- DDA_MCZm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_MCZm_evol_A17$drug <- "MCZ"
 DDA_5FCm_evol_A17 <- DDA_5FCm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_5FCm_evol_A17$drug <- "5FCm"
 DDA_VCZm_evol_A17 <- DDA_VCZm_evol %>%
   filter(line %in% Evol, strain == "A17")
+DDA_VCZm_evol_A17$drug <- "VCZm"
+
+evolA17 <- rbind(DDA_POSm_evol_A17, DDA_FLCm_evol_A17, DDA_CTRm_evol_A17, DDA_NYTm_evol_A17, DDA_MCZm_evol_A17, DDA_5FCm_evol_A17, DDA_VCZm_evol_A17)
+
+evolA17m <- evolA17 %>%
+  group_by(drug, line) %>%
+  summarize(avgRAD20 = mean(avgRAD20), avgFoG20 = mean(avgFoG20))
+
+write.csv(evolA17m, here("Data_Out", "DDA", "A17evol_DDA_long.csv"), row.names=FALSE)
+
+evolA17m_wide <- pivot_wider(evolA17m, names_from = drug, values_from = c(avgRAD20, avgFoG20))
+
+write.csv(evolA17m_wide, here("Data_Out", "DDA", "A17evol_DDA_wide.csv"), row.names=FALSE)
+
+evolA17m_sd <- evolA17m %>%
+  group_by(drug) %>%
+  summarize(sd_RAD = sd(avgRAD20, na.rm=TRUE), sd_FoG = sd(avgFoG20, na.rm=TRUE))
+
 
 # numerical order
 plot(DDA_POSm_evol_A17$deltaRAD50, 1:12, xlim=c(6, -14), pch=19, col=Dark2[8], yaxt="n", xlab = "Change in susceptibility", ylab = "Evolved replicate", type="b")
